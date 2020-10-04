@@ -1,0 +1,5 @@
+A
+600
+0.005
+0.35
+East_Asia Europe EF WHG Steppe

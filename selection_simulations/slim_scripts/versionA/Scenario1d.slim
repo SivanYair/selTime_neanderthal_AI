@@ -1,0 +1,245 @@
+initialize() {
+	initializeTreeSeq();
+	initializeMutationRate(0);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeMutationType("m2", 0.5, "f", 0.0); // sweep mutation (additive selective effect), initially without a selective advantage
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 2e6);
+	initializeRecombinationRate(1e-8);
+}
+1 early() {
+	// save this run's identifier, used to save and restore
+	defineConstant("simID", getSeed());
+	sim.addSubpop("p1", 10000);
+}
+2 early() {
+	sim.addSubpopSplit("p2",10000,p1); // p2 currently represents ancestor of all MH, p1=Neanderthal
+	p1.setSubpopulationSize(2500);
+}
+// introduce derived mutation in Neanderthals
+3 late() {
+	target = sample(p1.genomes, 1);
+	target.addNewDrawnMutation(m2, 1e6);
+	sim.mutationsOfType(m2).setSelectionCoeff(0.05);
+	// save the state of the simulation
+	sim.treeSeqOutput("/tmp/slim_" + simID + ".trees");
+}
+3:13929 late() {
+	mut = sim.mutationsOfType(m2);
+	if (size(mut) == 1)
+	{
+		if (sim.mutationFrequencies(p1, mut) > 0.1)
+		{
+			catn("ESTABLISHED in Neanderthals");
+			sim.deregisterScriptBlock(self);
+		}
+	}
+	else
+	{
+		catn("LOST FROM NEANDERTHALS – RESTARTING");
+		// go back to generation 3 & start a newly seeded run (but preserving tree sequence)
+		sim.readFromPopulationFile("/tmp/slim_" + simID + ".trees");
+		setSeed(getSeed() + 1);
+		sim.mutationsOfType(m2).setSelectionCoeff(0.05); // we need the reminder because it seems like the simulation forgets these parameters
+	}
+}
+13930 late() {
+	mut = sim.mutationsOfType(m2);
+	if (size(mut) == 1)
+	{
+		if (sim.mutationFrequencies(p1, mut) == 1.0)
+		{
+			catn("FIXED in Neanderthals");
+			sim.mutationsOfType(m2).setSelectionCoeff(0.0);
+		}
+		else
+		{
+			catn("NOT FIXED IN NEANDERTHALS – RESTARTING");
+			// go back to generation 3 & start a newly seeded run (but preserving tree sequence)
+			sim.readFromPopulationFile("/tmp/slim_" + simID + ".trees");
+			setSeed(getSeed() + 1);
+			sim.mutationsOfType(m2).setSelectionCoeff(0.05); // we need the reminder because it seems like the simulation forgets these parameters
+		}
+	}
+	else
+	{
+		catn("NOT FIXED IN NEANDERTHALS – RESTARTING");
+		// go back to generation 3 & start a newly seeded run (but preserving tree sequence)
+		sim.readFromPopulationFile("/tmp/slim_" + simID + ".trees");
+		setSeed(getSeed() + 1);
+		sim.mutationsOfType(m2).setSelectionCoeff(0.05); // we need the reminder because it seems like the simulation forgets these parameters
+	}
+}
+13502 late() {
+	sim.addSubpopSplit("p3",10000,p2); // p3 currently represents ancestor of East_Asia+EurUP+Europe+Steppe+EF+WHG, p2=Africa
+}
+13931 late() {
+	p3.setMigrationRates(p1,0.02); // ancestor of East_Asia+EurUP+Europe+Steppe+EF+WHG gets migrants from Neanderthal
+	// save the state of the simulation
+	sim.treeSeqOutput("/tmp/slim_" + simID + ".trees");
+}
+13932 late() {
+	p3.setMigrationRates(p1,0); // ancestor of East_Asia+EurUP+Europe+Steppe+EF+WHG no longer gets migrants from Neanderthal
+	// frequencies after migration
+	mut=sim.mutationsOfType(m2);
+	catn("ALELLE FREQS JUST AFTER ADMIXTURE: " + sim.generation);
+	popFreqs=NULL;
+	for(pop in sim.subpopulations)
+	{
+		popFreqs=c(popFreqs,sim.mutationFrequencies(pop,mut));
+	}
+	catn(popFreqs,sep=",");
+}
+// start selection in admixed populations
+13932 late() {
+	mut = sim.mutationsOfType(m2);
+	// check if all selected populations are still segregating for Neanderthal mutation
+	popFreqs=NULL;
+	for(pop in setDifference(sim.subpopulations,c(p1,p2)))
+	{
+		popFreqs=c(popFreqs,sim.mutationFrequencies(pop,mut));
+	}
+	if ( all(popFreqs>0) ) 
+	{
+		catn("STARTING SELECTION in MH populations");
+		sim.mutationsOfType(m2).setSelectionCoeff(0.01);
+		// record what the initial allele frequencies are in each population
+		popFreqsAll=NULL;
+		for(pop in sim.subpopulations )
+		{
+			popFreqsAll=c(popFreqsAll,sim.mutationFrequencies(pop,mut));
+		}
+		cat("ALLELE FREQS AT SEL START (" + sim.generation + "): ");
+		catn(popFreqsAll,sep=", ");
+	}
+	else
+	{
+		catn("NOT SEGREGATING in all selected pops – RESTARTING");
+		// go back to generation of admixture & start a newly seeded run (but preserving tree sequence)
+		sim.readFromPopulationFile("/tmp/slim_" + simID + ".trees");
+		setSeed(getSeed() + 1);
+		sim.mutationsOfType(m2).setSelectionCoeff(0.0); // we need the reminder because it seems like the simulation forgets these parameters
+	}
+}
+// record frequency trajectory in sel pops & monitor that selected allele is not lost from any sel pops
+13933:14432 late() {
+	mut = sim.mutationsOfType(m2);
+	popFreqs=NULL;
+	for(pop in setDifference(sim.subpopulations,c(p1,p2)))
+	{
+		popFreqs=c(popFreqs,sim.mutationFrequencies(pop,mut));
+	}
+	selpopIDs_string="p"+3:length(sim.subpopulations);
+	catn(c("gen:"+sim.generation,selpopIDs_string+":"+popFreqs),sep=",");
+	if ( !all(popFreqs>0) ) 
+	{
+		catn("Neanderthal allele will NOT PERSIST in selected populations");
+		// go back to generation in which selection started & begin a newly seeded run (but preserving tree sequence)
+		sim.readFromPopulationFile("/tmp/slim_" + simID + ".trees");
+		setSeed(getSeed() + 1);
+		sim.mutationsOfType(m2).setSelectionCoeff(0.0); // we need the reminder because it seems like the simulation forgets these parameters
+	}
+}
+14278 late() {
+	sim.addSubpopSplit("p4",10000,p3); // p4 currently represents ancestor of EurUP+Europe+Steppe+EF+WHG, p3=East_Asia
+}
+// finish selection if final frequencies are appropriate
+14433 late() {
+	mut=sim.mutationsOfType(m2);
+	popFreqs=NULL;
+	for(pop in setDifference(sim.subpopulations,c(p1,p2)))
+	{
+		popFreqs=c(popFreqs,sim.mutationFrequencies(pop,mut));
+	}
+	if ( any(popFreqs>0.2 ) )
+	{
+		sim.mutationsOfType(m2).setSelectionCoeff(0.0);
+		popFreqsAll=NULL;
+		for(pop in sim.subpopulations )
+		{
+			popFreqsAll=c(popFreqsAll,sim.mutationFrequencies(pop,mut));
+		}
+		cat("ALLELE FREQS AT SEL FINISH (" + sim.generation + "): ");
+		catn(popFreqsAll,sep=", ");
+	}
+	else
+	{
+		catn("Neanderthal allele DID NOT reach high enough freq (>20%) in any selected populations");
+		// go back to generation selection started & begin a newly seeded run (but preserving tree sequence)
+		sim.readFromPopulationFile("/tmp/slim_" + simID + ".trees");
+		setSeed(getSeed() + 1);
+		sim.mutationsOfType(m2).setSelectionCoeff(0.01); // we need the reminder because it seems like the simulation forgets these parameters
+	}
+}
+14450 late() {
+	sim.addSubpopSplit("p5",10000,p4); // p5 currently represents ancestor of Europe+Steppe+EF+WHG, p4=EurUP
+}
+14452 early() {
+	sim.treeSeqRememberIndividuals(p1.individuals); // record samples of all Neanderthal individuals alive at this time
+}
+14623 late() {
+	sim.addSubpopSplit("p6",10000,p5); // p6=Steppe, p5=Europe
+	sim.addSubpopSplit("p7",10000,p5); // p7=EF, p5=Europe
+	sim.addSubpopSplit("p8",10000,p5); // p8=WHG, p5=Europe
+}
+14838 early() {
+	sim.treeSeqRememberIndividuals(p4.individuals); // record samples of all EurUP individuals alive at this time
+}
+15700 early() {
+	sim.treeSeqRememberIndividuals(p8.individuals); // record samples of all WHG individuals alive at this time
+}
+15756 early() {
+	sim.treeSeqRememberIndividuals(p7.individuals); // record samples of all EF individuals alive at this time
+}
+15775 late() {
+	p5.setMigrationRates(p8,0.999); // Europe gets migrants from WHG
+}
+15776 late() {
+	p5.setMigrationRates(p8,0); // Europe no longer gets migrants from WHG
+}
+15777 late() {
+	p5.setMigrationRates(p7,0.8125); // Europe gets migrants from EF
+}
+15778 late() {
+	p5.setMigrationRates(p7,0); // Europe no longer gets migrants from EF
+}
+15835 early() {
+	sim.treeSeqRememberIndividuals(p6.individuals); // record samples of all Steppe individuals alive at this time
+}
+15846 late() {
+	p5.setMigrationRates(p6,0.36); // Europe gets migrants from Steppe
+}
+15847 late() {
+	p5.setMigrationRates(p6,0); // Europe no longer gets migrants from Steppe
+}
+16002 late() {
+//make sure allele freqs are high enough in at least one presentDay, selected population before finishing
+	mut = sim.mutationsOfType(m2);
+	popFreqs=NULL;
+	for(pop in c(p3,p5) )
+	{
+		popFreqs=c(popFreqs,sim.mutationFrequencies(pop,mut));
+	}
+	if ( !any(popFreqs>0.2 ) )
+	{
+		catn("AT SIM END, Neanderthal allele DID NOT reach high enough freq (>20%) in any selected populations -- RESTARTING SELECTION");
+		// go back to generation selection started & begin a newly seeded run (but preserving tree sequence)
+		sim.readFromPopulationFile("/tmp/slim_" + simID + ".trees");
+		setSeed(getSeed() + 1);
+		sim.mutationsOfType(m2).setSelectionCoeff(0.0); // we need the reminder because it seems like the simulation forgets these parameters
+	}
+	else
+	{
+	//record final frequencies as sanity check
+		catn("FINISHED! ALELLE FREQS AT FINAL GEN: " + sim.generation);
+		popFreqsAll=NULL;
+		for(pop in sim.subpopulations)
+		{
+			popFreqsAll=c(popFreqsAll,sim.mutationFrequencies(pop,mut));
+		}
+		catn(popFreqsAll,sep=",");
+
+		sim.treeSeqOutput(trees_file);
+		sim.simulationFinished();
+	}
+}
