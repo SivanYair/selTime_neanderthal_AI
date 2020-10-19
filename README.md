@@ -6,8 +6,8 @@ This repository contains code associated with [Yair, Lee, and Coop (2020)](https
 comments in scripts for more details.
 
 1. **Imputation**: We provide scripts showing how we impute genotypes for ancient samples from genotype likelihoods at fewer sites.
-  + [imputation](https://github.com/SivanYair/selTime_neanderthal_AI/tree/main/imputation) contains scripts using Beagle 4.1 to impute genotypes and remove sites with low imputation accuracy.
-  + [region-info](https://github.com/SivanYair/selTime_neanderthal_AI/tree/main/region-info) contains files that list windows of analysis for inference and exploring allele frequencies in putative windows of adaptive introgression.
+    + [imputation](https://github.com/SivanYair/selTime_neanderthal_AI/tree/main/imputation) contains scripts using Beagle 4.1 to impute genotypes and remove sites with low imputation accuracy.
+    + [region-info](https://github.com/SivanYair/selTime_neanderthal_AI/tree/main/region-info) contains files that list windows of analysis for inference and exploring allele frequencies in putative windows of adaptive introgression.
 2. **Simulations and Method**: We provide scripts showing how we simulated data for
     method validation, in addition to how we run the method on those data.
     + [specification_files](https://github.com/SivanYair/selTime_neanderthal_AI/tree/main/specification_files) contains scripts that describe the demographic history and sample sizes used for simulations and inference.

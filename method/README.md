@@ -21,7 +21,7 @@ Our approach here differs slightly, but uses the same general logic.
  8. **[plotCompLikeResults.R](https://github.com/SivanYair/selTime_neanderthal_AI/blob/main/method/plotCompLikeResults.R)**: plots results and prints estimates of $t_b$ and $s$.
 
 # Details to run the method
-You can run the method on the data from the first run of the Scenaroi1b simulation as follows:
+You can run the method on the data from the first run of the Scenario1b simulation as follows:
 
 ```
 Rscript --vanilla master_script.R ../selection_simulations/args_files/Scenario1b.txt 1 1

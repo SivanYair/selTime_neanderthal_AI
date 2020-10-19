@@ -10,8 +10,8 @@ The file [run_slim_and_get_freqs.txt](https://github.com/SivanYair/selTime_neand
      lines in the following order describing:
     + the letter referring to the demography version to use (see [../specification_files](https://github.com/SivanYair/selTime_neanderthal_AI/blob/main/specification_files))
     + the sample size option to use (see [../specification_files](https://github.com/SivanYair/selTime_neanderthal_AI/blob/main/specification_files))
-    + the selection coefficient ($s$)
-    + the time between admixture and selection ($t_b$)
+    + the selection coefficient (_s_)
+    + the time between admixture and selection (_t<sub>b</sub>_)
     + populations (space-separated) in which the Neanderthal allele is positively selected
   + The slim scripts are written to the [slim_scripts/version{letter}](https://github.com/SivanYair/selTime_neanderthal_AI/tree/main/selection_simulations/slim_scripts/versionA) directory. They need to be run on the command line with defined variable 'trees_file' (path to file that tree sequences are recorded to)
 
