@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# coding: utf-8
 
 import msprime, pyslim
 import numpy as np
@@ -20,8 +19,6 @@ args=parser.parse_args()
 trees_path="selection_output/version"+args.demographyVersion+"/"
 run_specifier=args.scenarioName+"_run"+args.run
 ts = pyslim.load(trees_path+'orig_trees/'+run_specifier+".trees")
-#ts = pyslim.load('/home/sivan/Documents/Ch1/scripts/slim_sims/practice/output/selectionPractice.trees')
-#ts = pyslim.load('/home/sivan/Documents/Ch1/scripts/slim_sims/practice/output/selectionTest3.trees')
 
 # Specify the paths for population names and sample sizes, which will be used later
 spec_path="../specification_files/"
@@ -30,14 +27,13 @@ sampleSizes_file=spec_path+"option"+args.sampleSize+"_fullPop_indivSampleSizes.f
 
 
 recap = ts.recapitate(recombination_rate=1e-8, Ne=1e4)
-#recap.dump(trees_path+'recapitated/'+run_specifier+".trees")
 
 # Remember individuals from the past (aka sampled indiv in the past)
 # find out what these times are:
 # for t in np.unique(mutated.individual_times):
 #  print(f"There are {np.sum(mutated.individual_times == t)} individuals from time {t}.")
 # Order of sampling (from present to past) is:
-# 1. modern, 2. Steppe, 3. EF, 4. WHG, 5. UP, 6. sim start
+# 1. modern, 2. Steppe, 3. EF, 4. WHG, 5. EurUP, 6. sim start
 
 # individual metadata
 tables=recap.dump_tables()
@@ -46,20 +42,11 @@ ind_md=list(pyslim.extract_individual_metadata(tables)) # each index is one indi
 # sel site index before we add additional mutations: (this will be updated when we add mutations)
 selSiteIndex=0
 
-# population ID and name ####
-# since population IDs in slim have different indexing than python lists,
-# define slim population IDs by name in pop_ID dictionary
-# then later we can use this dictionary to find the name associated with that ID
-# and store population level information according to these names
-# (we want to avoid any sort of indexing strategy because of the risk of inconsistency)
-
 # load population IDs and sample sizes from R to python
 # this allows for consistency between what's specified in multiple scripts
 # pops start as a data frame, which we then make a series by indexing column name pops, which we then make a dictionary
 # keys correspond to python indexing (add 1 to get slim and R indexing)
 pops=list(pd.read_feather(pops_file)['pops'])
-#pops = ['Neanderthal','Africa','UP','East_Asia','Europe','WHG','EF','Steppe']
-#sampleSize_indiv={'Neanderthal':1,'Africa':100,'UP':10,'East_Asia':100,'Europe':100,'WHG':40,'EF':80,'Steppe':10}
 
 # sample size (number of *individuals* sampled)
 # load a data frame with 2 columns: 'pop' and 'size_indiv'
@@ -154,10 +141,7 @@ pop_node_samples_simple={k: tree_justNodes[1][v] for k,v in pop_node_samples.ite
 
 # ADD MUTATIONS
 # lose info about ancestral samples if you do  below:
-#mutated = msprime.mutate(ts, rate=1e-7, keep=True)
-#mutated = pyslim.SlimTreeSequence(msprime.mutate(tree_justNodes[0], rate=1e-10, keep=True))
 mutated = pyslim.SlimTreeSequence(msprime.mutate(tree_justNodes[0], rate=1e-7, keep=True))
-#mutated.dump(trees_path+'mutated/'+run_specifier+".trees")
 
 
 # get population SAMPLE allele frequencies
@@ -210,7 +194,6 @@ for full_pop in pops:
 
 # get positions, in which index corresponds to frequencies in each pop
 # Note: positions refer to base pair coordinates
-# Note: don't really need positions for neutrality
 
 # prep all data to be a pandas data frame
 freq_df=pd.DataFrame(frequencies) # first get pandas data frame

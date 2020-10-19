@@ -1,0 +1,59 @@
+#!/bin/bash
+
+# saves vcf of whole sample to be used as input
+raw_output_folder='target_vcf_raw_1240k'
+
+# this folder saves _unfiltered and _filtered
+imp_1240k_output='target_vcf_imputed_1240k'
+
+# this folder saves final imputation the filtered version at the previous step
+imp_all_output='target_vcf_imputed_all'
+
+reference_sample_loc='1000genomes_samples_byPop'
+reference_set_loc='1000g_refPanel'
+
+mkdir -p $raw_output_folder
+mkdir -p $imp_1240k_output
+mkdir -p $imp_all_output
+
+# read through files listing each region and its window, but exclude the first line (header)
+while read chr left right region; do
+
+  for pop in WHG EF Steppe EurUP; do
+
+    vcftools --gzvcf readcounts_byRegion_v4-2/${region}_All_raw_1240k.vcf.gz --keep pop-samples/${pop}-imputable-indiv.txt --recode --stdout | sed 's/\.:/\.|\.:/g' | gzip -c > ${raw_output_folder}/${region}_${pop}.vcf.gz
+
+    # from this raw file, get 1240k imputed genotypes:
+    java -Xss5m -Xmx8g -jar beagle.27Jan18.7e1.jar gtgl=${raw_output_folder}/${region}_${pop}.vcf.gz impute=false ref=${reference_set_loc}/${region}_EurAsia.vcf.gz chrom=${chr}:${left}-${right} map=plink.GRCh37.map/plink.chr${chr}.GRCh37.map nthreads=4 lowmem=false out=${imp_1240k_output}/${region}_${pop}_unfiltered
+
+    # filter only AR2<0.8 for polymorphic sites (i.e. keep monomorphic in the sample)
+    # piping steps:
+    # 1. unzip vcf
+    # 2. print lines starting with "#";
+    #    print remaining lines that creates two columns from the info field:
+    #    the first ($8) is the AR2 value, the second ($9) is the AF value
+    #    (this step creates an extra column for these data rows <- not compliant with vcf format)
+    # 3. print lines starting with "#";
+    #    of the remaining lines, only print those that have AR2>0.8 OR AF<.005
+    #    (by the end of this step we still have an extra column)
+    # 4. print lines starting with "#";
+    #    of the remaining lines, remove the 9th column by skipping over it as follows:
+    #    printing columns 1-8, then 10-NF (NF=number of fields in the row)
+    #    note: use printf$i""FS because it allows each column $i to be printed on the
+    #          same line as separated by FS (FS=input field separator).
+    #          the print "" portion that follows causes a new line to be written
+    #          (which means the next record will be written on a new line, to maintain)
+
+    # Note: awk '/^#/ {print}' always writes lines starting with "#" first,
+    #       then, within the open quotes, I can follow with a semicolon to
+    #       say what will be printed next. So I always follow with ; !/^#/
+    #       to get the lines that don't start with "#" (all of the actual data)
+    #       and write some action for those lines
+    gzcat ${imp_1240k_output}/${region}_${pop}_unfiltered.vcf.gz | awk '/^#/ {print}; !/^#/ {split($8,INFO,";");split(INFO[1],AR2,"=");split(INFO[3],AF,"=");$8=AR2[2]"\t"AF[2]; print}' FS="\t" OFS="\t" | awk '/^#/ {print}; !/^#/ && ($8>=0.8 || $9<0.005 || $9>0.995) {print}' | awk '/^#/ {print}; !/^#/ {for(i=1;i<=8;++i)printf $i""FS;for(i=10;i<=NF;++i)printf $i""FS; print ""}' FS="\t" OFS="\t" | gzip -c > ${imp_1240k_output}/${region}_${pop}_filtered.vcf.gz
+    java -Xss5m -Xmx8g -jar beagle.27Jan18.7e1.jar gt=${imp_1240k_output}/${region}_${pop}_filtered.vcf.gz impute=true ref=${reference_set_loc}/${region}_EurAsia.vcf.gz chrom=${chr}:${left}-${right} map=plink.GRCh37.map/plink.chr${chr}.GRCh37.map nthreads=4 lowmem=false out=${imp_all_output}/${region}_${pop}_unfiltered
+
+    # filter the final imputation
+    gzcat ${imp_all_output}/${region}_${pop}_unfiltered.vcf.gz | awk '/^#/ {print}; !/^#/ {split($8,INFO,";");split(INFO[1],AR2,"=");split(INFO[3],AF,"=");$8=AR2[2]"\t"AF[2]; print}' FS="\t" OFS="\t" | awk '/^#/ {print}; !/^#/ && ($8>=0.8 || $9<0.005 || $9>0.995) {print}' | awk '/^#/ {print}; !/^#/ {for(i=1;i<=8;++i)printf $i""FS;for(i=10;i<=NF;++i)printf $i""FS; print ""}' FS="\t" OFS="\t" | gzip -c > ${imp_all_output}/${region}_${pop}_filtered.vcf.gz
+
+  done
+done < ../region-info/inference-ranges-merged-2e-2.txt

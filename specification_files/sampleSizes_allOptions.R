@@ -14,5 +14,3 @@ sampleSizes_indiv_python=data.frame(pop=names(sampleSizes_indiv),size_indiv=samp
 write_feather(sampleSizes_indiv_python, paste0("~/slim_sims/specification_files/option",option,"_fullPop_indivSampleSizes.feather"))
 sampleSizes_genomes_R=sampleSizes_indiv*2
 saveRDS(sampleSizes_genomes_R,paste0("~/slim_sims/specification_files/option",option,"_fullPop_genomeSampleSizes.RDS"))
-
-# OPTION 2

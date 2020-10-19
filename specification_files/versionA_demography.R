@@ -31,8 +31,8 @@ migs=as.data.frame(do.call('rbind',list(
 t_sampled_from_present=c(Neanderthal=1550,EurUP=1164,WHG=302,EF=246,Steppe=167)
 
 # save data to load in slim script-making R scripts
-save.image('~/slim_sims/specification_files/versionA_demography.RData')
+save.image('versionA_demography.RData')
 
 # need to save pops to python readable object? perhaps just run this version once, then load the data..
 library(feather)
-write_feather(as.data.frame(pops), "~/slim_sims/specification_files/versionA_pops.feather")
+write_feather(as.data.frame(pops), "versionA_pops.feather")

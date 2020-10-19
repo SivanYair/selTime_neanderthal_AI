@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# command line arguments, with comments showing example input
+versionLetter=$1 # "A"
+scenario=$2 # "Scenario1b"
+run=$3 # "1"
+sampleSize_option=$4 # "1"
+
+# make the simulation script for the given scenario
+Rscript --vanilla make_selection_slim_script.R args_files/${scenario}.txt
+
+# run the simulation
+slim -d trees_file="'selection_output/version${versionLetter}/orig_trees/${scenario}_run${run}.trees'" slim_scripts/version${versionLetter}/${scenario}.slim
+
+# get allele frequencies from tree sequences: outputs feather files
+./selection_getFreqs_fromSlimTrees.py --demographyVersion ${versionLetter} --sampleSize ${sampleSize_option} --run ${run} --scenarioName ${scenario}
+
+# convert feather files to RDS files
+script --vanilla convert_feather_to_RDS.R ${versionLetter} ${sampleSize_option} ${scenario} ${run}
+
+# remove tree sequence file to save space
+rm selection_output/version${versionLetter}/orig_trees/${scenario}_run${run}.trees
