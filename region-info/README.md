@@ -7,7 +7,7 @@ of adaptive introgression.
   3. right position
   4. region label
 
-**partition-ranges-merged.txt**: lists windows for the 36 regions of adaptive introgression.
+**[partition-ranges-merged.txt](https://github.com/SivanYair/selTime_neanderthal_AI/blob/main/region-info/partition-ranges-merged.txt)**: lists windows for the 36 regions of adaptive introgression.
 
-**inference-ranges-merged-2e-2.txt**: lists windows that we run the method on for a region, i.e. each region of adaptive introgression listed in the previous file,
-plus 2cM surrounding it (1 cM on each side). There are fewer regions listed in this file because we merged regions with overlapping windows. We still run the method separately on each, we just merge them for efficiency when imputing or calculating allele frequencies.  
+**[inference-ranges-merged-2e-2.txt](https://github.com/SivanYair/selTime_neanderthal_AI/blob/main/region-info/inference-ranges-merged-2e-2.txt)**: lists windows that we run the method on for a region, i.e. each region of adaptive introgression listed in the previous file,
+plus 2 cM surrounding it (1 cM on each side). There are fewer regions listed in this file because we merged regions with overlapping windows. We still run the method separately on each, we just merge them for efficiency when imputing or calculating allele frequencies.  
